@@ -1,0 +1,18 @@
+[theme]
+primaryColor = "#2D6A4F"               # Verde escuro (botões, links)
+backgroundColor = "#F9F9F9"            # Quase branco (fundo geral)
+secondaryBackgroundColor = "#E9ECEF"   # Cinza claro (menus, caixas)
+textColor = "#212529"                  # Cinza escuro (texto)
+font = "sans serif"
+
+[client]
+pageTitle = "Sistema de Qualidade"
+
+[server]
+headless = true
+runOnSave = true
+
+# .streamlit/config.toml
+[theme]
+base = "dark"
+
