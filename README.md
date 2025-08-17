@@ -16,7 +16,7 @@
 
 ### 📸 **Captura de Tela**
 
-![Captura de Tela da Aplicação](screenshot-inicio.png)
+![Captura de Tela da Aplicação](PÁGINA INICIAL DO SITE.jpeg)
 
 ---
 
