@@ -45,7 +45,7 @@ def buscar_todos_fornecedores():
     return df
 
 # --- Configuração da Página ---
-st.title("📦 Cadastro de Fornecedores com Banco de Dados")
+st.title("📦 Cadastro de Fornecedores")
 st.markdown("Preencha os dados abaixo para cadastrar um novo fornecedor no sistema.")
 
 # --- Lógica de Limpeza (sem alterações) ---
