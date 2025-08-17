@@ -16,14 +16,15 @@ def inicializar_banco():
     try:
         cursor = conn.cursor()
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS fornecedores (
-            NomeEmpresa TEXT NOT NULL,
-            CNPJ TEXT PRIMARY KEY NOT NULL,
-            Endereco TEXT,
-            Email TEXT,
-            Telefone TEXT
-        );
-        """)
+    CREATE TABLE IF NOT EXISTS fornecedores (
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        NomeEmpresa TEXT NOT NULL,
+        CNPJ TEXT UNIQUE NOT NULL,
+        Endereco TEXT,
+        Email TEXT,
+        Telefone TEXT
+    );
+    """)
         conn.commit()
     finally:
         conn.close()
