@@ -21,11 +21,11 @@ st.write(
     """
 )
 
-st.subheader("Módulos Disponíveis:")
+st.subheader("Módulos Disponíveis: ")
 st.markdown(
     """
     - **[Cadastro de Fornecedores](Cadastro_de_Fornecedores)**: Adicione novos fornecedores ao sistema.
-    - **[Agendamento](Agendamento)**: Em breve.
+    - **[Agendamento](Agendamento)**: Agende suas cargas.
     - **[Visualização de Janelas](Visualiza_o_de_Janelas)**: Em breve.
     """
 )

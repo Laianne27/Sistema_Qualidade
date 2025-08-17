@@ -1,0 +1,19 @@
+# Ignorar o ambiente virtual do Python
+.venv/
+
+# Ignorar caches do Python
+__pycache__/
+*.pyc
+
+# Ignorar bancos de dados locais (MUITO IMPORTANTE)
+# Seu arquivo de banco de dados não deve ser enviado para um repositório público
+# se contiver dados sensíveis ou de teste.
+*.db
+*.sqlite3
+
+# Ignorar arquivos de configuração do Streamlit que podem conter segredos
+.streamlit/secrets.toml
+
+# Ignorar arquivos de sistema operacional (macOS, Windows, Linux)
+.DS_Store
+Thumbs.db
