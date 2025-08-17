@@ -39,7 +39,7 @@ O **QUALICENTRAL** é um projeto para desenvolver um sistema web focado em otimi
 
 ### 🗺️ Roadmap de Funcionalidades Planejadas
 
--   [ ] **Módulo 2: Agendamento de Entregas:** Permitir que fornecedores agendem entregas, com dados do veículo e da carga.
+-   [X] **Módulo 2: Agendamento de Entregas:** Permitir que fornecedores agendem entregas, com dados do veículo e da carga.
 -   [ ] **Módulo 3: Painel Interno de Visualização:** Um dashboard para a equipe interna visualizar e gerenciar o status dos veículos agendados.
 -   [ ] **Módulo 4: Análise de Recebimento:** Lançamento de resultados de análises de qualidade para cada lote recebido.
 -   [ ] **Módulo 5: Registro de Não Conformidades:** Sistema para registrar desvios de qualidade, gerar laudos e comunicar fornecedores.
@@ -99,6 +99,10 @@ Siga os passos abaixo para configurar e executar o projeto em seu ambiente local
     ```bash
     streamlit run 0_🏠_Início.py
     ```
+
+O seu navegador abrirá automaticamente com a aplicação em funcionamento!
+
+***Obs.:*** *O arquivo de banco de dados (`fornecedores.db`) será criado automaticamente na pasta do projeto na primeira vez que você acessar a página de cadastro de fornecedores.*
 
 O seu navegador abrirá automaticamente com a aplicação em funcionamento!
 
