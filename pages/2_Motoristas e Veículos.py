@@ -6,13 +6,9 @@ import pandas as pd
 DB_NAME = "fornecedores.db"
 
 def inicializar_banco_motoristas_veiculos():
-    """
-    Garante que as tabelas 'motoristas' e 'veiculos' existam com a estrutura correta.
-    """
+    """Garante que as tabelas 'motoristas' e 'veiculos' existam."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-
-    # Tabela de motoristas, com chave estrangeira para fornecedores
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS motoristas (
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,8 +19,6 @@ def inicializar_banco_motoristas_veiculos():
         FOREIGN KEY (FornecedorID) REFERENCES fornecedores (ID)
     );
     """)
-
-    # Tabela de veículos, com chave estrangeira para motoristas
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS veiculos (
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,10 +33,9 @@ def inicializar_banco_motoristas_veiculos():
     conn.close()
 
 # Funções para interagir com o banco de dados
-def buscar_dados(tabela, colunas="*"):
+def buscar_dados(query):
     conn = sqlite3.connect(DB_NAME)
     try:
-        query = f"SELECT {colunas} FROM {tabela}"
         df = pd.read_sql_query(query, conn)
         return df
     finally:
@@ -54,14 +47,16 @@ inicializar_banco_motoristas_veiculos()
 # --- INTERFACE DA PÁGINA ---
 st.title("🚗 Gerenciamento de Motoristas e Veículos")
 
+if 'gerenciar_motorista_id' not in st.session_state:
+    st.session_state.gerenciar_motorista_id = None
+
 # 1. SELECIONAR O FORNECEDOR
 st.header("1. Selecione o Fornecedor")
-fornecedores_df = buscar_dados("fornecedores", "ID, NomeEmpresa")
+fornecedores_df = buscar_dados("SELECT ID, NomeEmpresa FROM fornecedores ORDER BY NomeEmpresa ASC")
 
 if fornecedores_df.empty:
-    st.error("Nenhum fornecedor cadastrado. Por favor, cadastre um fornecedor primeiro na página de Gerenciamento de Fornecedores.")
+    st.error("Nenhum fornecedor cadastrado. Por favor, cadastre um fornecedor primeiro.")
 else:
-    # Cria uma lista de nomes de fornecedores para o selectbox
     fornecedor_selecionado_nome = st.selectbox(
         "Fornecedor",
         options=fornecedores_df['NomeEmpresa'],
@@ -69,9 +64,7 @@ else:
         placeholder="Escolha um fornecedor para gerenciar..."
     )
 
-    # Se um fornecedor foi selecionado, continua a lógica
     if fornecedor_selecionado_nome:
-        # Pega o ID do fornecedor selecionado
         fornecedor_id = fornecedores_df[fornecedores_df['NomeEmpresa'] == fornecedor_selecionado_nome]['ID'].iloc[0]
 
         st.markdown("---")
@@ -90,61 +83,81 @@ else:
                         try:
                             conn = sqlite3.connect(DB_NAME)
                             cursor = conn.cursor()
-                            cursor.execute(
-                                "INSERT INTO motoristas (Nome, CPF, Telefone, FornecedorID) VALUES (?, ?, ?, ?)",
-                                (novo_nome, novo_cpf, novo_telefone, fornecedor_id)
-                            )
+                            cursor.execute("INSERT INTO motoristas (Nome, CPF, Telefone, FornecedorID) VALUES (?, ?, ?, ?)", (novo_nome, novo_cpf, novo_telefone, fornecedor_id))
                             conn.commit()
                             st.success(f"Motorista {novo_nome} cadastrado com sucesso!")
+                            st.rerun()
                         except sqlite3.IntegrityError:
-                            st.error(f"Erro: O CPF '{novo_cpf}' já está cadastrado no sistema.")
+                            st.error(f"Erro: O CPF '{novo_cpf}' já está cadastrado.")
                         finally:
                             conn.close()
                     else:
                         st.warning("Nome e CPF são obrigatórios.")
 
-        # 3. LISTAR MOTORISTAS EXISTENTES E SEUS VEÍCULOS
-        motoristas_df = buscar_dados(f"motoristas WHERE FornecedorID = {fornecedor_id}")
+        # 3. LISTA DE MOTORISTAS
+        st.subheader("Motoristas Cadastrados")
+        motoristas_df = buscar_dados(f"SELECT ID, Nome, CPF, Telefone FROM motoristas WHERE FornecedorID = {fornecedor_id}")
 
         if motoristas_df.empty:
             st.info("Este fornecedor ainda não possui motoristas cadastrados.")
         else:
+            col_header1, col_header2, col_header3, col_header4 = st.columns([3, 2, 2, 2])
+            col_header1.markdown("**Nome**")
+            col_header2.markdown("**CPF**")
+            col_header3.markdown("**Telefone**")
+            col_header4.markdown("**Ações**")
+
             for index, motorista in motoristas_df.iterrows():
-                st.subheader(f"Motorista: {motorista['Nome']}")
-                st.write(f"**CPF:** {motorista['CPF']} | **Telefone:** {motorista['Telefone']}")
+                with st.container():
+                    col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+                    col1.write(motorista['Nome'])
+                    col2.write(motorista['CPF'])
+                    col3.write(motorista['Telefone'])
+                    if col4.button("Gerenciar Veículos", key=motorista['ID']):
+                        st.session_state.gerenciar_motorista_id = motorista['ID']
+                        st.rerun() # Adicionado para garantir o estado correto ao clicar
 
-                with st.container(border=True):
-                    # Lógica para veículos deste motorista
-                    veiculos_df = buscar_dados(f"veiculos WHERE MotoristaID = {motorista['ID']}")
+        # 4. SEÇÃO PARA GERENCIAR VEÍCULOS
+        if st.session_state.gerenciar_motorista_id:
+            # Filtra o DataFrame para encontrar o motorista selecionado
+            motorista_filtrado_df = motoristas_df[motoristas_df['ID'] == st.session_state.gerenciar_motorista_id]
 
-                    if not veiculos_df.empty:
-                        st.write("**Veículos Cadastrados:**")
-                        st.dataframe(veiculos_df[['Placa', 'Modelo', 'Tipo']], use_container_width=True)
+            # ===== A CORREÇÃO ESTÁ AQUI =====
+            # Verificamos se a filtragem encontrou o motorista na lista ATUAL
+            if not motorista_filtrado_df.empty:
+                motorista_selecionado = motorista_filtrado_df.iloc[0]
+                
+                st.markdown("---")
+                st.subheader(f"Gerenciando Veículos de: **{motorista_selecionado['Nome']}**")
 
-                    # Formulário para adicionar novo veículo
-                    with st.form(f"form_veiculo_{motorista['ID']}", clear_on_submit=True):
-                        st.write("**Adicionar Novo Veículo:**")
-                        col1, col2, col3 = st.columns(3)
-                        nova_placa = col1.text_input("Placa")
-                        novo_modelo = col2.text_input("Modelo")
-                        novo_tipo = col3.text_input("Tipo")
-                        submit_veiculo = st.form_submit_button("Adicionar Veículo")
+                veiculos_df = buscar_dados(f"SELECT Placa, Modelo, Tipo FROM veiculos WHERE MotoristaID = {st.session_state.gerenciar_motorista_id}")
+                if not veiculos_df.empty:
+                    st.write("**Veículos Cadastrados:**")
+                    st.dataframe(veiculos_df, use_container_width=True, hide_index=True)
 
-                        if submit_veiculo:
-                            if nova_placa and novo_modelo:
-                                try:
-                                    conn = sqlite3.connect(DB_NAME)
-                                    cursor = conn.cursor()
-                                    cursor.execute(
-                                        "INSERT INTO veiculos (Placa, Modelo, Tipo, MotoristaID) VALUES (?, ?, ?, ?)",
-                                        (nova_placa.upper(), novo_modelo, novo_tipo, motorista['ID'])
-                                    )
-                                    conn.commit()
-                                    st.success(f"Veículo de placa {nova_placa.upper()} adicionado!")
-                                    st.rerun() # Recarrega a página para mostrar o novo veículo
-                                except sqlite3.IntegrityError:
-                                    st.error(f"Erro: A placa '{nova_placa.upper()}' já está cadastrada.")
-                                finally:
-                                    conn.close()
-                            else:
-                                st.warning("Placa e Modelo são obrigatórios.")
+                with st.form(f"form_veiculo_{st.session_state.gerenciar_motorista_id}", clear_on_submit=True):
+                    st.write("**Adicionar Novo Veículo:**")
+                    col1, col2, col3 = st.columns(3)
+                    nova_placa = col1.text_input("Placa")
+                    novo_modelo = col2.text_input("Modelo")
+                    novo_tipo = col3.text_input("Tipo")
+                    submit_veiculo = st.form_submit_button("Adicionar Veículo")
+
+                    if submit_veiculo:
+                        if nova_placa and novo_modelo:
+                            try:
+                                conn = sqlite3.connect(DB_NAME)
+                                cursor = conn.cursor()
+                                cursor.execute("INSERT INTO veiculos (Placa, Modelo, Tipo, MotoristaID) VALUES (?, ?, ?, ?)", (nova_placa.upper(), novo_modelo, novo_tipo, st.session_state.gerenciar_motorista_id))
+                                conn.commit()
+                                st.success(f"Veículo de placa {nova_placa.upper()} adicionado!")
+                                st.rerun()
+                            except sqlite3.IntegrityError:
+                                st.error(f"Erro: A placa '{nova_placa.upper()}' já está cadastrada.")
+                            finally:
+                                conn.close()
+                        else:
+                            st.warning("Placa e Modelo são obrigatórios.")
+            else:
+                # Se o motorista não foi encontrado na lista atual, limpamos o estado para evitar erros
+                st.session_state.gerenciar_motorista_id = None
