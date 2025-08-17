@@ -25,7 +25,7 @@ st.subheader("Módulos Disponíveis: ")
 st.markdown(
     """
     - **[Cadastro de Fornecedores](Cadastro_de_Fornecedores)**: Adicione novos fornecedores ao sistema.
-    - **[Agendamento](Agendamento)**: Agende suas cargas.
+    - **[Agendamento](Agendamento)**: Agende o recebimento de insumos de fornecedores cadastrados.
     - **[Visualização de Janelas](Visualiza_o_de_Janelas)**: Em breve.
     """
 )
