@@ -6,6 +6,15 @@ from utils.theme import aplicar_tema
 # Inicialização do banco de dados (tabelas e schema)
 inicializar_banco()
 
+# Se o banco de dados estiver completamente vazio, popula automaticamente com dados ricos de teste
+try:
+    df_check = executar_query("SELECT COUNT(*) as total FROM fornecedores")
+    if df_check.empty or int(df_check['total'].iloc[0]) == 0:
+        from utils.seeder import popular_banco
+        popular_banco(limpar_tabelas=True)
+except Exception as e:
+    pass
+
 # Configuração de Página e Estilos Globais
 aplicar_tema("Início", "🏢")
 
@@ -110,30 +119,39 @@ st.markdown("---")
 
 # 4. FLUXOGRAMA OPERACIONAL INTEGRADO
 st.subheader("🔄 Fluxo de Processamento de Cargas")
-st.markdown(
-    """
-    O fluxo abaixo ilustra as etapas de validação necessárias para que uma carga seja descarregada:
-    """
-)
+st.markdown("O fluxo operacional exige a validação das etapas para autorizar o descarregamento:")
 
-# Desenho do diagrama Mermaid
-st.mermaid(
-    """
-    graph TD
-        A[1. Cadastro do Fornecedor] --> B[2. Cadastro de Motorista e Veículo]
-        B --> C[3. Agendamento da Carga]
-        C --> D[4. Chegada na Portaria e Fila de Janelas]
-        D --> E[5. Análise de Amostra em Laboratório]
-        E --> F{Motor de Decisão}
-        F -- Conforme --> G[Aprovado: Descarga Autorizada]
-        F -- Desconto Comercial --> H[Aprovado com Restrição: Descarga com Desconto]
-        F -- Não Conforme --> I[Reprovado: Devolução do Veículo]
-        
-        style G fill:#d4edda,stroke:#28a745,stroke-width:2px;
-        style H fill:#fff3cd,stroke:#ffc107,stroke-width:2px;
-        style I fill:#f8d7da,stroke:#dc3545,stroke-width:2px;
-    """
-)
+col_f1, col_f2, col_f3 = st.columns(3)
+with col_f1:
+    with st.container(border=True):
+        st.write("### 📦 1. Cadastros")
+        st.write("Registro de fornecedores, motoristas credenciados e seus respectivos veículos no banco de dados.")
+
+with col_f2:
+    with st.container(border=True):
+        st.write("### 📅 2. Agendamento")
+        st.write("Programação de janelas de entrega para os insumos na doca, evitando conflito de frotas e fila na portaria.")
+
+with col_f3:
+    with st.container(border=True):
+        st.write("### 👁️ 3. Portaria")
+        st.write("Chegada física do caminhão e acompanhamento operacional em tempo real na fila diária de janelas.")
+
+col_f4, col_f5, col_f6 = st.columns(3)
+with col_f4:
+    with st.container(border=True):
+        st.write("### 🧪 4. Laboratório")
+        st.write("Coleta de amostra e inserção dos testes físico-químicos (Umidade, Pureza, Toxinas, PH) no sistema.")
+
+with col_f5:
+    with st.container(border=True):
+        st.write("### ⚖️ 5. Motor Legal")
+        st.write("Validação provisória em tempo real e verificação de conformidade com as legislações MAPA e ANVISA.")
+
+with col_f6:
+    with st.container(border=True):
+        st.write("### 🏁 6. Decisão")
+        st.write("Emissão de laudo final automático: **Aprovado**, **Aprovado com Desconto (Restrição)** ou **Reprovado**.")
 
 # Seção de Testes / Seeder
 st.markdown("---")
