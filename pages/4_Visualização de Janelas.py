@@ -7,7 +7,8 @@ from utils.theme import aplicar_tema
 aplicar_tema("Visualização de Janelas", "👁️")
 
 st.title("👁️ Painel Operacional - Janelas de Entrega")
-st.markdown("Acompanhamento visual da fila de cargas, agendamentos diários e planejamento semanal.")
+st.markdown("Monitoramento em tempo real do fluxo de docas, agendamentos diários e planejamento logístico semanal.")
+st.markdown("---")
 
 # Função para formatar dia da semana em português
 def dia_da_semana_pt(date_obj):
@@ -32,38 +33,60 @@ try:
     """)
     
     if agendamentos_df.empty:
-        st.warning("Nenhum agendamento cadastrado no sistema. Vá para a página de agendamentos ou use o Seeder na Home.")
+        st.warning("⚠️ Nenhum agendamento cadastrado no sistema. Vá para a página de agendamentos ou use o Seeder na Home para popular dados fictícios.")
     else:
-        # Métricas Globais no topo
+        # Métricas Globais da Operação no topo
         total_agendamentos = len(agendamentos_df)
         total_pendentes = len(agendamentos_df[agendamentos_df['Status'] == 'Pendente'])
+        total_aprovados = len(agendamentos_df[agendamentos_df['Status'] == 'Aprovado'])
+        total_recusados = len(agendamentos_df[agendamentos_df['Status'] == 'Recusado'])
         
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            st.metric("Total de Entregas Agendadas", f"{total_agendamentos} cargas")
-        with col_m2:
-            st.metric("Aguardando Recebimento (Pendentes)", f"{total_pendentes} cargas")
+        col_glob1, col_glob2, col_glob3, col_glob4 = st.columns(4)
+        with col_glob1:
+            st.metric("Total Planejado", f"{total_agendamentos} cargas")
+        with col_glob2:
+            st.metric("Aguardando Chegada", f"{total_pendentes} cargas")
+        with col_glob3:
+            st.metric("Descargas Concluídas", f"{total_aprovados} cargas")
+        with col_glob4:
+            st.metric("Cargas Recusadas", f"{total_recusados} cargas")
             
         st.markdown("---")
         
         # Criação das Abas
-        tab_diaria, tab_semanal = st.tabs(["📆 Visão Diária (Painel de Doca)", "📅 Programação Semanal"])
+        tab_diaria, tab_semanal = st.tabs(["📆 Painel de Portaria (Diário)", "📅 Calendário Semanal"])
         
         # 1. ABA DIÁRIA
         with tab_diaria:
-            st.subheader("Fila Operacional do Dia")
+            st.subheader("Fila Operacional de Doca")
             
             # Seletor de data (padrão: hoje)
-            dia_selecionado = st.date_input("Filtrar por data:", value=datetime.now().date())
+            dia_selecionado = st.date_input("Selecione a Data Operacional:", value=datetime.now().date())
             dia_str = dia_selecionado.strftime('%Y-%m-%d')
             
             # Filtra agendamentos para a data selecionada
             cargas_dia = agendamentos_df[agendamentos_df['DataAgendada'] == dia_str]
             
             if cargas_dia.empty:
-                st.info(f"Nenhuma carga agendada para {dia_selecionado.strftime('%d/%m/%Y')} ({dia_da_semana_pt(dia_selecionado)}).")
+                st.info(f"ℹ️ Nenhuma carga agendada para {dia_selecionado.strftime('%d/%m/%Y')} ({dia_da_semana_pt(dia_selecionado)}).")
             else:
-                st.success(f"Encontrada(s) **{len(cargas_dia)}** carga(s) para este dia.")
+                # Métricas do Dia Selecionado
+                dia_total = len(cargas_dia)
+                dia_volume = cargas_dia['QuantidadeEsperada'].sum()
+                dia_pendentes = len(cargas_dia[cargas_dia['Status'] == 'Pendente'])
+                dia_concluidas = len(cargas_dia[cargas_dia['Status'] == 'Aprovado'])
+                
+                col_d1, col_d2, col_d3, col_d4 = st.columns(4)
+                with col_d1:
+                    st.metric("Cargas Programadas", f"{dia_total} caminhões")
+                with col_d2:
+                    st.metric("Volume Previsto", f"{dia_volume:,.0f} Kg")
+                with col_d3:
+                    st.metric("Aguardando Triagem", f"{dia_pendentes} cargas")
+                with col_d4:
+                    st.metric("Finalizadas", f"{dia_concluidas} cargas")
+                
+                st.markdown("---")
                 
                 # Exibição de cards em colunas (3 por linha)
                 cols_cards = st.columns(3)
@@ -106,8 +129,8 @@ try:
                         
         # 2. ABA SEMANAL
         with tab_semanal:
-            st.subheader("Calendário de Entregas da Semana")
-            st.markdown("Agrupamento das cargas programadas para os próximos 7 dias.")
+            st.subheader("Programação Semanal de Entregas")
+            st.markdown("Agrupamento das cargas planejadas para os próximos 7 dias.")
             
             hoje_date = datetime.now().date()
             
@@ -119,16 +142,20 @@ try:
                 # Filtra agendamentos do dia futuro
                 cargas_do_dia = agendamentos_df[agendamentos_df['DataAgendada'] == dia_futuro_str]
                 total_cargas = len(cargas_do_dia)
+                volume_total = cargas_do_dia['QuantidadeEsperada'].sum() if total_cargas > 0 else 0
                 
                 # Nome do cabeçalho do expander
                 dia_semana_str = dia_da_semana_pt(dia_futuro)
                 data_formatada_br = dia_futuro.strftime('%d/%m/%Y')
                 
-                expander_label = f"📅 {dia_semana_str} ({data_formatada_br}) — {total_cargas} carga(s)"
+                # Se for hoje, adiciona uma tag
+                tag_hoje = " (HOJE)" if i == 0 else ""
+                
+                expander_label = f"📅 {dia_semana_str} ({data_formatada_br}){tag_hoje} — {total_cargas} carga(s) | Volume Total: {volume_total:,.0f} Kg"
                 
                 with st.expander(expander_label, expanded=(i == 0)):
                     if cargas_do_dia.empty:
-                        st.write("*Nenhuma carga planejada para esta data.*")
+                        st.write("*Nenhuma entrega agendada para esta data.*")
                     else:
                         # Exibe em formato de tabela minimalista dentro do expander
                         cargas_show = cargas_do_dia[['NomeEmpresa', 'TipoInsumo', 'QuantidadeEsperada', 'PlacaCaminhao', 'NomeMotorista', 'NotaFiscal', 'Status']].rename(columns={

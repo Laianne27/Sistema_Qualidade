@@ -3,127 +3,180 @@ import sqlite3
 from utils.db import executar_query, executar_dml
 from utils.theme import aplicar_tema
 
+# Configuração da página e estilos globais
 aplicar_tema("Motoristas e Veículos", "🚗")
 
-# --- INTERFACE DA PÁGINA ---
-st.title("🚗 Gerenciamento de Motoristas e Veículos")
+st.title("🚗 Controle de Motoristas e Veículos")
+st.markdown("Gerencie motoristas credenciados e frotas de transporte vinculadas aos seus fornecedores parceiros.")
+st.markdown("---")
 
-if 'gerenciar_motorista_id' not in st.session_state:
-    st.session_state.gerenciar_motorista_id = None
-
-# 1. SELECIONAR O FORNECEDOR
-st.header("1. Selecione o Fornecedor")
+# Busca fornecedores disponíveis
 fornecedores_df = executar_query("SELECT ID, NomeEmpresa FROM fornecedores ORDER BY NomeEmpresa ASC")
 
 if fornecedores_df.empty:
-    st.error("Nenhum fornecedor cadastrado. Por favor, cadastre um fornecedor primeiro.")
+    st.error("⚠️ Nenhum fornecedor cadastrado no sistema. Por favor, cadastre um fornecedor antes de gerenciar frotas.")
 else:
-    fornecedor_selecionado_nome = st.selectbox(
-        "Fornecedor",
-        options=fornecedores_df['NomeEmpresa'],
-        index=None,
-        placeholder="Escolha um fornecedor para gerenciar..."
-    )
-
-    if fornecedor_selecionado_nome:
-        fornecedor_id = fornecedores_df[fornecedores_df['NomeEmpresa'] == fornecedor_selecionado_nome]['ID'].iloc[0]
-
-        st.markdown("---")
-        st.header(f"2. Motoristas de: **{fornecedor_selecionado_nome}**")
-
-        # 2. CADASTRAR NOVO MOTORISTA
-        with st.expander("➕ Adicionar Novo Motorista"):
-            with st.form("form_novo_motorista", clear_on_submit=True):
-                novo_nome = st.text_input("Nome do Motorista")
-                novo_cpf = st.text_input("CPF do Motorista")
-                novo_telefone = st.text_input("Telefone do Motorista")
-                submit_motorista = st.form_submit_button("Salvar Motorista")
-
-                if submit_motorista:
-                    if novo_nome and novo_cpf:
+    # Criação das 3 abas estruturadas
+    tab_painel, tab_motorista, tab_veiculo = st.tabs([
+        "📋 Controle de Frotas", 
+        "👤 Cadastrar Motorista", 
+        "🚚 Cadastrar Veículo"
+    ])
+    
+    # --- 1. ABA: PAINEL DE FROTAS ---
+    with tab_painel:
+        st.subheader("Visualização Hierárquica de Frotas")
+        
+        fornecedor_selecionado = st.selectbox(
+            "Selecione o Fornecedor para Visualização",
+            options=fornecedores_df['NomeEmpresa'],
+            index=None,
+            placeholder="Escolha um fornecedor comercial...",
+            key="sb_painel_forn"
+        )
+        
+        if fornecedor_selecionado:
+            fornecedor_id = fornecedores_df[fornecedores_df['NomeEmpresa'] == fornecedor_selecionado]['ID'].iloc[0]
+            
+            # Busca todos os motoristas do fornecedor
+            motoristas = executar_query(
+                "SELECT ID, Nome, CPF, Telefone FROM motoristas WHERE FornecedorID = ? ORDER BY Nome ASC",
+                (int(fornecedor_id),)
+            )
+            
+            if motoristas.empty:
+                st.info(f"O fornecedor **{fornecedor_selecionado}** ainda não possui nenhum motorista credenciado.")
+            else:
+                st.write(f"Credenciados para **{fornecedor_selecionado}** ({len(motoristas)} motoristas):")
+                
+                # Loop para exibir cada motorista em um card limpo
+                for idx, row in motoristas.iterrows():
+                    with st.container(border=True):
+                        col_m1, col_m2, col_m3 = st.columns([3, 2, 2])
+                        col_m1.markdown(f"👤 **Nome:** {row['Nome']}")
+                        col_m2.write(f"📄 **CPF:** {row['CPF']}")
+                        col_m3.write(f"📞 **Telefone:** {row['Telefone']}")
+                        
+                        # Busca veículos do motorista
+                        veiculos = executar_query(
+                            "SELECT Placa, Modelo, Tipo FROM veiculos WHERE MotoristaID = ? ORDER BY Placa ASC",
+                            (int(row['ID']),)
+                        )
+                        
+                        # Expander interno para gerenciar veículos
+                        with st.expander(f"🚚 Ver Frota de Veículos ({len(veiculos)})", expanded=False):
+                            if veiculos.empty:
+                                st.caption("Nenhum veículo registrado para este motorista.")
+                            else:
+                                df_veic_show = veiculos.rename(columns={
+                                    'Placa': 'Placa do Veículo',
+                                    'Modelo': 'Modelo / Marca',
+                                    'Tipo': 'Tipo de Veículo'
+                                })
+                                st.dataframe(df_veic_show, use_container_width=True, hide_index=True)
+                                
+    # --- 2. ABA: CADASTRAR MOTORISTA ---
+    with tab_motorista:
+        st.subheader("Cadastro de Novo Motorista")
+        
+        fornecedor_mot = st.selectbox(
+            "Vincular ao Fornecedor",
+            options=fornecedores_df['NomeEmpresa'],
+            index=None,
+            placeholder="Escolha o fornecedor contratante...",
+            key="sb_mot_forn"
+        )
+        
+        if fornecedor_mot:
+            fornecedor_id_mot = fornecedores_df[fornecedores_df['NomeEmpresa'] == fornecedor_mot]['ID'].iloc[0]
+            
+            with st.form("form_cadastro_motorista", clear_on_submit=True):
+                nome = st.text_input("Nome Completo do Motorista")
+                cpf = st.text_input("CPF (somente números)")
+                telefone = st.text_input("Telefone de Contato")
+                
+                submit_mot = st.form_submit_button("💾 Salvar Motorista")
+                
+                if submit_mot:
+                    if not (nome and cpf):
+                        st.warning("⚠️ Nome e CPF são campos obrigatórios.")
+                    else:
                         try:
                             executar_dml(
                                 "INSERT INTO motoristas (Nome, CPF, Telefone, FornecedorID) VALUES (?, ?, ?, ?)",
-                                (novo_nome, novo_cpf, novo_telefone, fornecedor_id)
+                                (nome, cpf, telefone, int(fornecedor_id_mot))
                             )
-                            st.success(f"Motorista {novo_nome} cadastrado com sucesso!")
-                            st.rerun()
+                            st.success(f"✅ Motorista **{nome}** credenciado com sucesso!")
+                            st.toast("Motorista salvo no banco!", icon="👤")
                         except sqlite3.IntegrityError:
-                            st.error(f"Erro: O CPF '{novo_cpf}' já está cadastrado.")
+                            st.error(f"❌ Erro: O CPF '{cpf}' já está cadastrado no sistema.")
                         except sqlite3.Error as e:
                             st.error(f"Erro no banco de dados: {e}")
-                    else:
-                        st.warning("Nome e CPF são obrigatórios.")
-
-        # 3. LISTA DE MOTORISTAS
-        st.subheader("Motoristas Cadastrados")
-        motoristas_df = executar_query(
-            "SELECT ID, Nome, CPF, Telefone FROM motoristas WHERE FornecedorID = ?",
-            params=(int(fornecedor_id),)
+                            
+    # --- 3. ABA: CADASTRAR VEÍCULO ---
+    with tab_veiculo:
+        st.subheader("Cadastro de Veículo de Transporte")
+        
+        fornecedor_vei = st.selectbox(
+            "Selecione o Fornecedor do Motorista",
+            options=fornecedores_df['NomeEmpresa'],
+            index=None,
+            placeholder="Escolha o fornecedor...",
+            key="sb_vei_forn"
         )
-
-        if motoristas_df.empty:
-            st.info("Este fornecedor ainda não possui motoristas cadastrados.")
-        else:
-            col_header1, col_header2, col_header3, col_header4 = st.columns([3, 2, 2, 2])
-            col_header1.markdown("**Nome**")
-            col_header2.markdown("**CPF**")
-            col_header3.markdown("**Telefone**")
-            col_header4.markdown("**Ações**")
-
-            for index, motorista in motoristas_df.iterrows():
-                with st.container():
-                    col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
-                    col1.write(motorista['Nome'])
-                    col2.write(motorista['CPF'])
-                    col3.write(motorista['Telefone'])
-                    if col4.button("Gerenciar Veículos", key=f"btn_{motorista['ID']}"):
-                        st.session_state.gerenciar_motorista_id = int(motorista['ID'])
-                        st.rerun()
-
-        # 4. SEÇÃO PARA GERENCIAR VEÍCULOS
-        if st.session_state.gerenciar_motorista_id:
-            # Filtra o DataFrame para encontrar o motorista selecionado
-            motorista_filtrado_df = motoristas_df[motoristas_df['ID'] == st.session_state.gerenciar_motorista_id]
-
-            if not motorista_filtrado_df.empty:
-                motorista_selecionado = motorista_filtrado_df.iloc[0]
+        
+        if fornecedor_vei:
+            fornecedor_id_vei = fornecedores_df[fornecedores_df['NomeEmpresa'] == fornecedor_vei]['ID'].iloc[0]
+            
+            # Filtra motoristas ativos do fornecedor selecionado
+            motoristas_vei = executar_query(
+                "SELECT ID, Nome, CPF FROM motoristas WHERE FornecedorID = ? ORDER BY Nome ASC",
+                (int(fornecedor_id_vei),)
+            )
+            
+            if motoristas_vei.empty:
+                st.info(f"O fornecedor **{fornecedor_vei}** não possui motoristas cadastrados. Credencie um motorista antes de registrar veículos.")
+            else:
+                # Formata exibição do motorista no selectbox
+                motoristas_vei['display'] = motoristas_vei['Nome'] + ' (CPF: ' + motoristas_vei['CPF'] + ')'
                 
-                st.markdown("---")
-                st.subheader(f"Gerenciando Veículos de: **{motorista_selecionado['Nome']}**")
-
-                veiculos_df = executar_query(
-                    "SELECT Placa, Modelo, Tipo FROM veiculos WHERE MotoristaID = ?",
-                    params=(int(st.session_state.gerenciar_motorista_id),)
+                motorista_selecionado_display = st.selectbox(
+                    "Selecione o Motorista Proprietário/Responsável",
+                    options=motoristas_vei['display'],
+                    index=None,
+                    placeholder="Escolha o motorista..."
                 )
                 
-                if not veiculos_df.empty:
-                    st.write("**Veículos Cadastrados:**")
-                    st.dataframe(veiculos_df, use_container_width=True, hide_index=True)
-
-                with st.form(f"form_veiculo_{st.session_state.gerenciar_motorista_id}", clear_on_submit=True):
-                    st.write("**Adicionar Novo Veículo:**")
-                    col1, col2, col3 = st.columns(3)
-                    nova_placa = col1.text_input("Placa")
-                    novo_modelo = col2.text_input("Modelo")
-                    novo_tipo = col3.text_input("Tipo")
-                    submit_veiculo = st.form_submit_button("Adicionar Veículo")
-
-                    if submit_veiculo:
-                        if nova_placa and novo_modelo:
-                            try:
-                                executar_dml(
-                                    "INSERT INTO veiculos (Placa, Modelo, Tipo, MotoristaID) VALUES (?, ?, ?, ?)",
-                                    (nova_placa.upper(), novo_modelo, novo_tipo, int(st.session_state.gerenciar_motorista_id))
-                                )
-                                st.success(f"Veículo de placa {nova_placa.upper()} adicionado!")
-                                st.rerun()
-                            except sqlite3.IntegrityError:
-                                st.error(f"Erro: A placa '{nova_placa.upper()}' já está cadastrada.")
-                            except sqlite3.Error as e:
-                                st.error(f"Erro no banco de dados: {e}")
-                        else:
-                            st.warning("Placa e Modelo são obrigatórios.")
-            else:
-                # Se o motorista não foi encontrado na lista atual, limpa o estado
-                st.session_state.gerenciar_motorista_id = None
+                if motorista_selecionado_display:
+                    motorista_id = motoristas_vei.loc[motoristas_vei['display'] == motorista_selecionado_display, 'ID'].iloc[0]
+                    
+                    with st.form("form_cadastro_veiculo", clear_on_submit=True):
+                        col_v1, col_v2 = st.columns(2)
+                        with col_v1:
+                            placa = st.text_input("Placa do Veículo (Ex: AAA0A00 / AAA0000)")
+                        with col_v2:
+                            modelo = st.text_input("Modelo / Marca (Ex: Scania R450, Volvo FH)")
+                            
+                        tipo = st.selectbox(
+                            "Tipo de Carroceria / Capacidade",
+                            options=["Truck (Simples)", "Bitrem", "Carreta", "Rodotrem", "Vanderleia", "Outro"]
+                        )
+                        
+                        submit_vei = st.form_submit_button("💾 Salvar Veículo")
+                        
+                        if submit_vei:
+                            if not placa.strip():
+                                st.warning("⚠️ A placa do veículo é obrigatória.")
+                            else:
+                                try:
+                                    placa_formatada = placa.strip().upper()
+                                    executar_dml(
+                                        "INSERT INTO veiculos (Placa, Modelo, Tipo, MotoristaID) VALUES (?, ?, ?, ?)",
+                                        (placa_formatada, modelo, tipo, int(motorista_id))
+                                    )
+                                    st.success(f"✅ Veículo de placa **{placa_formatada}** registrado com sucesso!")
+                                    st.toast("Veículo salvo no banco!", icon="🚚")
+                                except sqlite3.IntegrityError:
+                                    st.error(f"❌ Erro: A placa '{placa_formatada}' já está registrada para outro motorista.")
+                                except sqlite3.Error as e:
+                                    st.error(f"Erro no banco de dados: {e}")
