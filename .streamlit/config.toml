@@ -1,18 +1,13 @@
 [theme]
-primaryColor = "#2D6A4F"               # Verde escuro (botões, links)
+primaryColor = "#1E3A8A"               # Azul Cobalto (Tema QualiHub)
 backgroundColor = "#F9F9F9"            # Quase branco (fundo geral)
 secondaryBackgroundColor = "#E9ECEF"   # Cinza claro (menus, caixas)
 textColor = "#212529"                  # Cinza escuro (texto)
 font = "sans serif"
 
 [client]
-pageTitle = "Sistema de Qualidade"
+pageTitle = "QualiHub"
 
 [server]
 headless = true
 runOnSave = true
-
-# .streamlit/config.toml
-[theme]
-base = "dark"
-

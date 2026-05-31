@@ -1,64 +1,33 @@
 import streamlit as st
-import pandas as pd
 import sqlite3
-import os # É uma boa prática importar todas as bibliotecas no início
+from utils.db import executar_query, executar_dml
+from utils.theme import aplicar_tema
 
-# --- CONFIGURAÇÕES DO BANCO DE DADOS ---
-DB_NAME = "fornecedores.db"
-
-def inicializar_banco():
-    """
-    Cria o banco de dados e a tabela 'fornecedores' se não existirem.
-    A cláusula 'IF NOT EXISTS' é a chave para não apagar os dados.
-    """
-    # Usamos um 'try...finally' para garantir que a conexão seja sempre fechada.
-    conn = sqlite3.connect(DB_NAME)
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-    CREATE TABLE IF NOT EXISTS fornecedores (
-        ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        NomeEmpresa TEXT NOT NULL,
-        CNPJ TEXT UNIQUE NOT NULL,
-        Endereco TEXT,
-        Email TEXT,
-        Telefone TEXT
-    );
-    """)
-        conn.commit()
-    finally:
-        conn.close()
-
-# Chamamos a função de inicialização no início da execução do script
-inicializar_banco()
+aplicar_tema("Cadastro de Fornecedores", "📦")
 
 def buscar_todos_fornecedores():
-    """
-    Busca todos os registros e retorna como um DataFrame pandas.
-    """
-    conn = sqlite3.connect(DB_NAME)
-    try:
-        query = "SELECT NomeEmpresa, CNPJ, Endereco, Email, Telefone FROM fornecedores"
-        df = pd.read_sql_query(query, conn)
-    finally:
-        conn.close()
-    return df
+    """Busca todos os registros de fornecedores e retorna como um DataFrame pandas."""
+    query = "SELECT NomeEmpresa, CNPJ, Endereco, Email, Telefone FROM fornecedores"
+    return executar_query(query)
 
 # --- Configuração da Página ---
 st.title("📦 Cadastro de Fornecedores")
 st.markdown("Preencha os dados abaixo para cadastrar um novo fornecedor no sistema.")
 
-# --- Lógica de Limpeza (sem alterações) ---
+# --- Lógica de Limpeza de Campos ---
 campos = ["nome", "cnpj", "telefone", "endereco", "email"]
 if 'limpeza_solicitada' not in st.session_state:
     st.session_state.limpeza_solicitada = False
+
 def solicitar_limpeza():
     st.session_state.limpeza_solicitada = True
+
 if st.session_state.limpeza_solicitada:
     for campo in campos:
         st.session_state[campo] = ""
     st.success("Campos limpos!")
     st.session_state.limpeza_solicitada = False
+
 for campo in campos:
     if campo not in st.session_state:
         st.session_state[campo] = ""
@@ -82,26 +51,23 @@ with st.form("formulario_fornecedor", clear_on_submit=False):
         if not all([nome_empresa, cnpj, endereco, email_contato, telefone_contato]):
             st.warning("Por favor, preencha todos os campos.")
         else:
-            conn = sqlite3.connect(DB_NAME)
             try:
-                cursor = conn.cursor()
                 # Verifica se o CNPJ já existe
-                cursor.execute("SELECT CNPJ FROM fornecedores WHERE CNPJ = ?", (cnpj,))
-                if cursor.fetchone():
+                cnpj_existente = executar_query("SELECT CNPJ FROM fornecedores WHERE CNPJ = ?", (cnpj,))
+                if not cnpj_existente.empty:
                     st.error("❌ Já existe um fornecedor cadastrado com esse CNPJ.")
                 else:
-                    # Se não existe, insere o novo fornecedor
-                    cursor.execute("""
+                    # Insere o novo fornecedor
+                    executar_dml("""
                     INSERT INTO fornecedores (NomeEmpresa, CNPJ, Endereco, Email, Telefone)
                     VALUES (?, ?, ?, ?, ?)
                     """, (nome_empresa, cnpj, endereco, email_contato, telefone_contato))
-                    conn.commit()
-                    st.success("✅ Fornecedor cadastrado com sucesso no banco de dados!")
-                    solicitar_limpeza() # Solicita a limpeza dos campos do formulário
+                    
+                    st.success("✅ Fornecedor cadastrado com sucesso!")
+                    solicitar_limpeza()
+                    st.rerun()
             except sqlite3.Error as e:
                 st.error(f"Ocorreu um erro no banco de dados: {e}")
-            finally:
-                conn.close()
 
 # Botão de Reset/Limpeza Manual
 st.button("🧹 Limpar Dados / Resetar", on_click=solicitar_limpeza, help="Clique aqui para limpar todos os campos e começar de novo.")
@@ -110,13 +76,10 @@ st.button("🧹 Limpar Dados / Resetar", on_click=solicitar_limpeza, help="Cliqu
 st.markdown("---")
 st.subheader("📋 Fornecedores Cadastrados")
 
-# Busca os dados mais recentes do banco
 df_fornecedores = buscar_todos_fornecedores()
 
-# Exibe na tela
 if df_fornecedores.empty:
     st.info("Ainda não há fornecedores cadastrados no banco de dados.")
 else:
-    # Mostra o número de registros encontrados (nosso diagnóstico)
     st.info(f"**Encontrados {len(df_fornecedores)} fornecedores no banco de dados.**")
-    st.dataframe(df_fornecedores)
+    st.dataframe(df_fornecedores, use_container_width=True)

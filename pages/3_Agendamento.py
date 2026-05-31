@@ -1,55 +1,20 @@
-# Sistema de Qualidade/pages/2_ Agendamento.py
-
 import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
+from utils.db import executar_query, executar_dml
+from utils.theme import aplicar_tema
 
-# --- CONFIGURAÇÕES DO BANCO DE DADOS ---
-DB_NAME = "fornecedores.db"
-
-def inicializar_banco_agendamento():
-    """
-    Garante que a tabela 'agendamentos' exista, usando a estrutura planejada.
-    """
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    # Tabela de agendamentos, com chave estrangeira para fornecedores
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS agendamentos (
-        ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        FornecedorCNPJ TEXT NOT NULL,
-        TipoInsumo TEXT NOT NULL,
-        QuantidadeEsperada REAL NOT NULL,
-        PlacaCaminhao TEXT NOT NULL,
-        NomeMotorista TEXT,
-        NotaFiscal TEXT UNIQUE,
-        DataAgendada TEXT NOT NULL,
-        Status TEXT NOT NULL,
-        DataCadastro TEXT NOT NULL,
-        FOREIGN KEY (FornecedorCNPJ) REFERENCES fornecedores (CNPJ)
-    );
-    """)
-    conn.commit()
-    conn.close()
+aplicar_tema("Agendamento de Entregas", "📅")
 
 def buscar_fornecedores_para_dropdown():
-    """
-    Busca o Nome e o CNPJ dos fornecedores para preencher um seletor.
-    """
-    conn = sqlite3.connect(DB_NAME)
-    try:
-        query = "SELECT NomeEmpresa, CNPJ FROM fornecedores ORDER BY NomeEmpresa ASC"
-        df = pd.read_sql_query(query, conn)
+    """Busca o Nome e o CNPJ dos fornecedores para preencher o seletor."""
+    query = "SELECT NomeEmpresa, CNPJ FROM fornecedores ORDER BY NomeEmpresa ASC"
+    df = executar_query(query)
+    if not df.empty:
         # Cria uma coluna formatada para exibição no dropdown
         df['display'] = df['NomeEmpresa'] + ' (' + df['CNPJ'] + ')'
-        return df[['display', 'CNPJ']]
-    finally:
-        conn.close()
-
-
-# Inicializa a tabela ao carregar a página
-inicializar_banco_agendamento()
+    return df
 
 # --- INTERFACE DA PÁGINA ---
 st.title("📅 Agendamento de Entregas")
@@ -78,40 +43,35 @@ else:
         placa_caminhao = st.text_input("Placa do Veículo")
         nome_motorista = st.text_input("Nome do Motorista")
         nota_fiscal = st.text_input("Número da Nota Fiscal")
-        data_agendada = st.date_input("Data da Entrega")
+        data_agendada = st.date_input("Data da Entrega", value=None)
 
         submitted = st.form_submit_button("Agendar Entrega")
 
         if submitted:
-            if not all([fornecedor_display, tipo_insumo, quantidade_esperada, placa_caminhao, nota_fiscal]):
-                st.warning("Por favor, preencha todos os campos obrigatórios.")
+            if not all([fornecedor_display, tipo_insumo, quantidade_esperada > 0, placa_caminhao, nota_fiscal, data_agendada]):
+                st.warning("Por favor, preencha todos os campos obrigatórios (Quantidade deve ser maior que 0 e a Data deve ser selecionada).")
             else:
                 # Recupera o CNPJ do fornecedor selecionado
                 cnpj_selecionado = fornecedores.loc[fornecedores['display'] == fornecedor_display, 'CNPJ'].iloc[0]
 
-                # Lógica para salvar no banco
-                conn = sqlite3.connect(DB_NAME)
-                cursor = conn.cursor()
                 try:
-                    cursor.execute("""
+                    # Lógica para salvar no banco
+                    executar_dml("""
                     INSERT INTO agendamentos (FornecedorCNPJ, TipoInsumo, QuantidadeEsperada, PlacaCaminhao, NomeMotorista, NotaFiscal, DataAgendada, Status, DataCadastro)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         cnpj_selecionado,
                         tipo_insumo,
                         quantidade_esperada,
-                        placa_caminhao,
+                        placa_caminhao.upper(),
                         nome_motorista,
                         nota_fiscal,
                         data_agendada.strftime('%Y-%m-%d'),
                         'Pendente',
                         datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     ))
-                    conn.commit()
                     st.success(f"Entrega de {tipo_insumo} agendada com sucesso para {data_agendada.strftime('%d/%m/%Y')}!")
                 except sqlite3.IntegrityError:
                     st.error(f"Erro: A Nota Fiscal '{nota_fiscal}' já foi utilizada em outro agendamento.")
-                except Exception as e:
-                    st.error(f"Ocorreu um erro inesperado: {e}")
-                finally:
-                    conn.close()
+                except sqlite3.Error as e:
+                    st.error(f"Erro no banco de dados: {e}")
