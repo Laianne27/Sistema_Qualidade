@@ -85,8 +85,8 @@ try:
                     with col_card:
                         card_html = f"""
                         <div style="
-                            background-color: #FFFFFF;
-                            border: 1px solid rgba(30, 58, 138, 0.08);
+                            background-color: var(--st-secondary-background-color);
+                            border: 1px solid var(--st-secondary-background-color);
                             border-radius: 14px;
                             padding: 22px;
                             margin-bottom: 20px;
@@ -94,7 +94,7 @@ try:
                             transition: all 0.3s ease;
                         ">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <span style="font-weight: 700; color: #1E3A8A; font-size: 16px;">🌾 {row['TipoInsumo']}</span>
+                                <span style="font-weight: 700; color: var(--st-text-color); font-size: 16px;">🌾 {row['TipoInsumo']}</span>
                                 <span style="
                                     background-color: {color_bg};
                                     color: {color_text};
@@ -105,15 +105,19 @@ try:
                                     text-transform: uppercase;
                                 ">{row['Status']}</span>
                             </div>
-                            <div style="font-size: 14px; color: #4B5563; margin-bottom: 6px;">🏢 <b>Fornecedor:</b> {row['NomeEmpresa']}</div>
-                            <div style="font-size: 14px; color: #4B5563; margin-bottom: 6px;">🚚 <b>Placa:</b> {row['PlacaCaminhao']}</div>
-                            <div style="font-size: 14px; color: #4B5563; margin-bottom: 6px;">👤 <b>Motorista:</b> {row['NomeMotorista']}</div>
-                            <div style="font-size: 14px; color: #4B5563; margin-bottom: 12px;">📄 <b>NF:</b> {row['NotaFiscal']}</div>
+                            <div style="font-size: 14px; color: var(--st-text-color); opacity: 0.8; margin-bottom: 6px;">🏢 <b>Fornecedor:</b> {row['NomeEmpresa']}</div>
+                            <div style="font-size: 14px; color: var(--st-text-color); opacity: 0.8; margin-bottom: 6px;">🚚 <b>Placa:</b> {row['PlacaCaminhao']}</div>
+                            <div style="font-size: 14px; color: var(--st-text-color); opacity: 0.8; margin-bottom: 6px;">👤 <b>Motorista:</b> {row['NomeMotorista']}</div>
+                            <div style="font-size: 14px; color: var(--st-text-color); opacity: 0.8; margin-bottom: 12px;">📄 <b>NF:</b> {row['NotaFiscal']}</div>
                             <div style="
-                                border-top: 1px dashed rgba(59, 130, 246, 0.15); 
-                                padding-top: 10px;
+                                border-top: 1px dashed var(--st-text-color); 
+                                opacity: 0.15;
+                                margin-top: 10px;
+                                margin-bottom: 10px;
+                            "></div>
+                            <div style="
                                 font-size: 16px; 
-                                color: #1E3A8A; 
+                                color: var(--st-text-color); 
                                 font-weight: 700;
                                 display: flex;
                                 justify-content: space-between;

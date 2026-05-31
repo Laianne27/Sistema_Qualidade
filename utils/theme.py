@@ -4,8 +4,8 @@ import streamlit as st
 
 def aplicar_tema(titulo_pagina, icone_pagina):
     """
-    Configura a página do Streamlit e aplica uma folha de estilo CSS premium.
-    Centraliza a identidade visual do QualiHub.
+    Configura a página do Streamlit e aplica uma folha de estilo CSS minimalista premium
+    que utiliza variáveis nativas do Streamlit para suportar automaticamente os temas Claro e Escuro.
     """
     st.set_page_config(
         page_title=f"QualiHub - {titulo_pagina}",
@@ -13,113 +13,130 @@ def aplicar_tema(titulo_pagina, icone_pagina):
         layout="wide"
     )
     
-    # CSS Customizado para Revamp de Layout
+    # CSS Customizado - Adaptativo Claro/Escuro (B2B Minimalista)
     css = """
     <style>
-    /* 1. Importando e aplicando a fonte Outfit */
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+    /* 1. Importando e aplicando a fonte Inter */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     html, body, [class*="css"], .stApp {
-        font-family: 'Outfit', sans-serif !important;
+        font-family: 'Inter', sans-serif !important;
     }
     
-    /* 2. Títulos e Subtítulos Premium */
+    html, body, .stApp {
+        background-color: var(--st-background-color) !important;
+        color: var(--st-text-color) !important;
+    }
+    
+    /* 2. Títulos e Subtítulos Adaptativos */
     h1 {
         font-weight: 700 !important;
-        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%) !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
+        color: var(--st-text-color) !important;
+        letter-spacing: -0.025em !important;
         padding-bottom: 5px !important;
     }
     
     h2, h3 {
-        color: #1E3A8A !important;
+        color: var(--st-text-color) !important;
         font-weight: 600 !important;
-        margin-top: 15px !important;
+        letter-spacing: -0.02em !important;
+        margin-top: 20px !important;
+        opacity: 0.95 !important;
     }
     
-    /* Linhas divisórias com degradê */
+    /* Linhas divisórias sutis adaptativas */
     hr {
-        margin-top: 1rem !important;
-        margin-bottom: 1rem !important;
+        margin-top: 1.5rem !important;
+        margin-bottom: 1.5rem !important;
         border: 0 !important;
-        border-top: 2px solid rgba(59, 130, 246, 0.15) !important;
+        border-top: 1px solid var(--st-secondary-background-color) !important;
+        opacity: 0.5 !important;
     }
     
     /* 3. Estilização dos Formulários (Form Cards) */
     div[data-testid="stForm"] {
-        border: 1px solid rgba(30, 58, 138, 0.1) !important;
-        border-radius: 16px !important;
-        padding: 30px !important;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03) !important;
-        background-color: #FFFFFF !important;
+        border: 1px solid var(--st-secondary-background-color) !important;
+        border-radius: 8px !important;
+        padding: 24px !important;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+        background-color: var(--st-background-color) !important;
     }
     
-    /* 4. Estilização de Botões */
+    /* 4. Estilização de Botões (Contraste Invertido Adaptativo) */
     div.stButton > button, div[data-testid="stForm"] button[type="submit"] {
-        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%) !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        border-radius: 10px !important;
-        padding: 10px 28px !important;
-        font-size: 15px !important;
-        font-weight: 600 !important;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.18) !important;
-        transition: all 0.3s ease !important;
+        background-color: var(--st-text-color) !important; /* Cor oposta ao fundo */
+        color: var(--st-background-color) !important;
+        border: 1px solid var(--st-text-color) !important;
+        border-radius: 6px !important;
+        padding: 8px 20px !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+        transition: opacity 0.15s ease-in-out !important;
         width: auto !important;
     }
     
     div.stButton > button:hover, div[data-testid="stForm"] button[type="submit"]:hover {
-        background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%) !important;
-        box-shadow: 0 6px 18px rgba(59, 130, 246, 0.35) !important;
-        transform: translateY(-1px) !important;
+        opacity: 0.85 !important;
     }
     
     /* 5. Estilização de Métricas (Dashboard Cards) */
     div[data-testid="stMetric"] {
-        background-color: rgba(30, 58, 138, 0.03);
-        border: 1px solid rgba(30, 58, 138, 0.08);
-        border-radius: 16px;
-        padding: 20px 25px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.01);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background-color: var(--st-secondary-background-color) !important;
+        border: 1px solid var(--st-secondary-background-color) !important;
+        border-radius: 8px !important;
+        padding: 16px 20px !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+        transition: border-color 0.15s ease-in-out !important;
     }
     
     div[data-testid="stMetric"]:hover {
-        background-color: rgba(30, 58, 138, 0.06);
-        border-color: rgba(30, 58, 138, 0.18);
-        box-shadow: 0 8px 20px rgba(30, 58, 138, 0.08);
-        transform: translateY(-2px);
+        border-color: var(--st-text-color) !important;
     }
     
     div[data-testid="stMetric"] label {
-        font-size: 14px !important;
-        color: #4B5563 !important;
+        font-size: 13px !important;
+        color: var(--st-text-color) !important;
         font-weight: 500 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        opacity: 0.6 !important;
     }
     
     div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-        font-size: 32px !important;
-        font-weight: 700 !important;
-        color: #1E3A8A !important;
+        font-size: 28px !important;
+        font-weight: 600 !important;
+        color: var(--st-text-color) !important;
+        letter-spacing: -0.02em !important;
     }
     
     /* 6. Customização do Dataframe */
     .stDataFrame {
-        border-radius: 12px !important;
+        border-radius: 8px !important;
         overflow: hidden !important;
-        border: 1px solid rgba(30, 58, 138, 0.08) !important;
+        border: 1px solid var(--st-secondary-background-color) !important;
     }
     
     /* Estilização da barra lateral */
     section[data-testid="stSidebar"] {
-        background-color: #F8FAFC !important;
-        border-right: 1px solid #E2E8F0 !important;
+        background-color: var(--st-secondary-background-color) !important;
+        border-right: 1px solid var(--st-secondary-background-color) !important;
     }
     
     section[data-testid="stSidebar"] div.stSubheader {
         font-weight: 600 !important;
-        color: #0F172A !important;
+        color: var(--st-text-color) !important;
+    }
+    
+    /* Ajustando inputs do Streamlit */
+    div[data-baseweb="input"], div[data-baseweb="select"] {
+        border-radius: 6px !important;
+    }
+    
+    /* Estilização dos Callouts (Alerts) */
+    div[data-testid="stNotification"] {
+        border-radius: 8px !important;
+        border: 1px solid var(--st-secondary-background-color) !important;
     }
     </style>
     """
