@@ -71,63 +71,38 @@ try:
                 for idx, (_, row) in enumerate(cargas_dia.iterrows()):
                     col_card = cols_cards[idx % 3]
                     
-                    # Cores para o status badge
-                    if row['Status'] == "Pendente":
-                        color_bg = "rgba(245, 158, 11, 0.15)"
-                        color_text = "#D97706"
-                    elif row['Status'] == "Aprovado":
-                        color_bg = "rgba(16, 185, 129, 0.15)"
-                        color_text = "#059669"
-                    else:
-                        color_bg = "rgba(239, 68, 68, 0.15)"
-                        color_text = "#DC2626"
-                        
                     with col_card:
-                        card_html = f"""
-                        <div style="
-                            background-color: var(--st-secondary-background-color);
-                            border: 1px solid var(--st-secondary-background-color);
-                            border-radius: 14px;
-                            padding: 22px;
-                            margin-bottom: 20px;
-                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-                            transition: all 0.3s ease;
-                        ">
+                        with st.container(border=True):
+                            # Status Badge HTML
+                            if row['Status'] == "Pendente":
+                                badge_html = '<span style="background-color: rgba(245, 158, 11, 0.15); color: #D97706; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Pendente</span>'
+                            elif row['Status'] == "Aprovado":
+                                badge_html = '<span style="background-color: rgba(16, 185, 129, 0.15); color: #059669; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Aprovado</span>'
+                            else:
+                                badge_html = '<span style="background-color: rgba(239, 68, 68, 0.15); color: #DC2626; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Recusado</span>'
+                                
+                            header_html = f"""
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <span style="font-weight: 700; color: var(--st-text-color); font-size: 16px;">🌾 {row['TipoInsumo']}</span>
-                                <span style="
-                                    background-color: {color_bg};
-                                    color: {color_text};
-                                    padding: 4px 10px;
-                                    border-radius: 8px;
-                                    font-size: 12px;
-                                    font-weight: 600;
-                                    text-transform: uppercase;
-                                ">{row['Status']}</span>
+                                <span style="font-weight: 700; font-size: 16px;">🌾 {row['TipoInsumo']}</span>
+                                {badge_html}
                             </div>
-                            <div style="font-size: 14px; color: var(--st-text-color); opacity: 0.8; margin-bottom: 6px;">🏢 <b>Fornecedor:</b> {row['NomeEmpresa']}</div>
-                            <div style="font-size: 14px; color: var(--st-text-color); opacity: 0.8; margin-bottom: 6px;">🚚 <b>Placa:</b> {row['PlacaCaminhao']}</div>
-                            <div style="font-size: 14px; color: var(--st-text-color); opacity: 0.8; margin-bottom: 6px;">👤 <b>Motorista:</b> {row['NomeMotorista']}</div>
-                            <div style="font-size: 14px; color: var(--st-text-color); opacity: 0.8; margin-bottom: 12px;">📄 <b>NF:</b> {row['NotaFiscal']}</div>
-                            <div style="
-                                border-top: 1px dashed var(--st-text-color); 
-                                opacity: 0.15;
-                                margin-top: 10px;
-                                margin-bottom: 10px;
-                            "></div>
-                            <div style="
-                                font-size: 16px; 
-                                color: var(--st-text-color); 
-                                font-weight: 700;
-                                display: flex;
-                                justify-content: space-between;
-                            ">
+                            """
+                            st.markdown(header_html, unsafe_allow_html=True)
+                            
+                            st.markdown(f"🏢 **Fornecedor:** {row['NomeEmpresa']}")
+                            st.markdown(f"🚚 **Placa:** {row['PlacaCaminhao']}")
+                            st.markdown(f"👤 **Motorista:** {row['NomeMotorista']}")
+                            st.markdown(f"📄 **NF:** {row['NotaFiscal']}")
+                            
+                            st.divider()
+                            
+                            footer_html = f"""
+                            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700;">
                                 <span>Volume:</span>
                                 <span>{row['QuantidadeEsperada']:,} Kg</span>
                             </div>
-                        </div>
-                        """
-                        st.markdown(card_html, unsafe_allow_html=True)
+                            """
+                            st.markdown(footer_html, unsafe_allow_html=True)
                         
         # 2. ABA SEMANAL
         with tab_semanal:
