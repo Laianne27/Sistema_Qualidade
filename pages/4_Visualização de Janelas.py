@@ -32,6 +32,11 @@ try:
         ORDER BY a.DataAgendada ASC, a.ID ASC
     """)
     
+    # Filtro de visibilidade baseado no Perfil de Acesso (Fornecedor)
+    perfil = st.session_state.get("role", "Administrador")
+    if perfil == "Fornecedor":
+        agendamentos_df = agendamentos_df[agendamentos_df['NomeEmpresa'] == "Cerealista Amambai Ltda"]
+    
     if agendamentos_df.empty:
         st.warning("⚠️ Nenhum agendamento cadastrado no sistema. Vá para a página de agendamentos ou use o Seeder na Home para popular dados fictícios.")
     else:

@@ -45,14 +45,20 @@ else:
     with col_form:
         st.subheader("📝 Solicitação de Janela")
         
-        # Criação de campos controlados via Session State para preview em tempo real
-        fornecedor_display = st.selectbox(
-            "Selecione o Fornecedor *",
-            options=fornecedores['display'],
-            index=None,
-            placeholder="Escolha o fornecedor...",
-            key="agend_fornecedor"
-        )
+        # Verifica perfil de acesso para restringir dados
+        perfil = st.session_state.get("role", "Administrador")
+        
+        if perfil == "Fornecedor":
+            fornecedor_display = "Cerealista Amambai Ltda (12.345.678/0001-90)"
+            st.info("🏢 Empresa Vinculada: **Cerealista Amambai Ltda (12.345.678/0001-90)**")
+        else:
+            fornecedor_display = st.selectbox(
+                "Selecione o Fornecedor *",
+                options=fornecedores['display'],
+                index=None,
+                placeholder="Escolha o fornecedor...",
+                key="agend_fornecedor"
+            )
         
         tipo_insumo = st.text_input("Tipo de Insumo (Ex: Milho em Grão, Soja) *", key="agend_insumo")
         quantidade_esperada = st.number_input("Quantidade Esperada (em Kg) *", min_value=0.0, step=100.0, key="agend_qtd")

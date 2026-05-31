@@ -7,11 +7,14 @@ def aplicar_tema(titulo_pagina, icone_pagina):
     Configura a página do Streamlit e aplica uma folha de estilo CSS minimalista premium
     que utiliza variáveis nativas do Streamlit para suportar automaticamente os temas Claro e Escuro.
     """
-    st.set_page_config(
-        page_title=f"QualiHub - {titulo_pagina}",
-        page_icon=icone_pagina,
-        layout="wide"
-    )
+    try:
+        st.set_page_config(
+            page_title=f"QualiHub - {titulo_pagina}",
+            page_icon=icone_pagina,
+            layout="wide"
+        )
+    except Exception:
+        pass
     
     css = """
     <style>
