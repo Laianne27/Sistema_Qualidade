@@ -5,6 +5,7 @@ from utils.theme import aplicar_tema
 
 # Configuração da página e design tokens
 aplicar_tema("Cadastro de Fornecedores", "📦")
+perfil_ativo = st.session_state.get("role", "Administrador")
 
 def buscar_fornecedores(termo_busca=""):
     """Busca fornecedores no banco de dados, aplicando filtro se termo_busca for fornecido."""
@@ -83,6 +84,13 @@ with col_form:
                         """, (nome_empresa, cnpj, endereco, email_contato, telefone_contato))
                         
                         st.success("✅ Fornecedor cadastrado com sucesso!")
+                        
+                        # Se for perfil Fornecedor, faz login automático
+                        if perfil_ativo == "Fornecedor":
+                            st.session_state["fornecedor_cnpj_input"] = cnpj
+                            st.session_state["fornecedor_logado_nome"] = nome_empresa
+                            st.session_state["fornecedor_logado_cnpj"] = cnpj
+                            
                         solicitar_limpeza()
                         st.rerun()
                 except sqlite3.Error as e:
@@ -92,28 +100,42 @@ with col_form:
     st.button("🧹 Limpar Campos", on_click=solicitar_limpeza, help="Limpa todos os campos digitados acima.")
 
 with col_lista:
-    st.subheader("📋 Parceiros Cadastrados")
-    
-    # Caixa de pesquisa dinâmica
-    busca = st.text_input("🔍 Filtrar Fornecedores", placeholder="Pesquise por Nome ou CNPJ...")
-    
-    # Carrega dados
-    df_fornecedores = buscar_fornecedores(busca)
-    
-    if df_fornecedores.empty:
-        if busca:
-            st.info("Nenhum fornecedor corresponde aos termos de pesquisa digitados.")
-        else:
-            st.info("Ainda não há fornecedores cadastrados no banco de dados.")
+    # Se for perfil Fornecedor, oculta parceiros comerciais para privacidade
+    if perfil_ativo == "Fornecedor":
+        st.subheader("📋 Autocredenciamento")
+        st.info(
+            """
+            Para começar a agendar suas entregas de grãos, primeiro realize o autocadastro 
+            preenchendo a ficha ao lado com as informações da sua empresa.
+            
+            **Após clicar em Salvar:**
+            1. Sua empresa será conectada automaticamente com o CNPJ cadastrado.
+            2. A navegação será atualizada e os módulos operacionais (agendamentos, frotas e janelas) serão liberados para o seu perfil.
+            """
+        )
     else:
-        st.info(f"Exibindo **{len(df_fornecedores)}** fornecedores.")
+        st.subheader("📋 Parceiros Cadastrados")
         
-        # Renomeia colunas para exibição premium
-        df_show = df_fornecedores.rename(columns={
-            'NomeEmpresa': 'Empresa / Razão Social',
-            'CNPJ': 'CNPJ',
-            'Endereco': 'Endereço',
-            'Email': 'E-mail',
-            'Telefone': 'Telefone'
-        })
-        st.dataframe(df_show, use_container_width=True, hide_index=True)
+        # Caixa de pesquisa dinâmica
+        busca = st.text_input("🔍 Filtrar Fornecedores", placeholder="Pesquise por Nome ou CNPJ...")
+        
+        # Carrega dados
+        df_fornecedores = buscar_fornecedores(busca)
+        
+        if df_fornecedores.empty:
+            if busca:
+                st.info("Nenhum fornecedor corresponde aos termos de pesquisa digitados.")
+            else:
+                st.info("Ainda não há fornecedores cadastrados no banco de dados.")
+        else:
+            st.info(f"Exibindo **{len(df_fornecedores)}** fornecedores.")
+            
+            # Renomeia colunas para exibição premium
+            df_show = df_fornecedores.rename(columns={
+                'NomeEmpresa': 'Empresa / Razão Social',
+                'CNPJ': 'CNPJ',
+                'Endereco': 'Endereço',
+                'Email': 'E-mail',
+                'Telefone': 'Telefone'
+            })
+            st.dataframe(df_show, use_container_width=True, hide_index=True)

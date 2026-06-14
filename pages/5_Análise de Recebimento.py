@@ -7,6 +7,191 @@ from utils.theme import aplicar_tema
 # Configuração da página e estilos
 aplicar_tema("Análise de Recebimento", "🧪")
 
+def gerar_html_certificado(res):
+    linhas_tabela = ""
+    for param, (status_param, val_medido, desc) in res["detalhes"].items():
+        cor_status = "#16a34a" if status_param == "Aprovado" else ("#d97706" if status_param == "Aprovado com Restrição" else "#dc2626")
+        linhas_tabela += f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">{param}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">{val_medido}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center; color: {cor_status}; font-weight: bold; text-transform: uppercase; font-size: 12px;">{status_param}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">{desc}</td>
+        </tr>
+        """
+    
+    status_cor = "#16a34a" if res['status_final'] == "Aprovado" else ("#d97706" if res['status_final'] in ["Aprovado com Restrição", "Aprovado com Desvio"] else "#dc2626")
+    if res['status_final'] == "Quarentena":
+        status_cor = "#e11d48"
+        
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <title>Certificado de Qualidade - QualiHub</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+            body {{
+                font-family: 'Inter', sans-serif;
+                margin: 40px;
+                color: #1e293b;
+                background-color: #ffffff;
+            }}
+            .cert-container {{
+                border: 3px double #cbd5e1;
+                border-radius: 12px;
+                padding: 30px;
+                max-width: 800px;
+                margin: 0 auto;
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            }}
+            .header {{
+                text-align: center;
+                border-bottom: 2px solid #cbd5e1;
+                padding-bottom: 20px;
+                margin-bottom: 25px;
+            }}
+            .header h1 {{
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                color: #0f172a;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }}
+            .header p {{
+                margin: 5px 0 0 0;
+                font-size: 13px;
+                color: #64748b;
+            }}
+            .info-grid {{
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin-bottom: 25px;
+                background-color: #f8fafc;
+                padding: 15px;
+                border-radius: 8px;
+                font-size: 14px;
+            }}
+            .info-item {{
+                line-height: 1.5;
+            }}
+            .info-item strong {{
+                color: #475569;
+            }}
+            .status-badge {{
+                display: inline-block;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: 800;
+                text-transform: uppercase;
+                font-size: 16px;
+                color: #ffffff;
+                background-color: {status_cor};
+                margin-top: 10px;
+                letter-spacing: 0.5px;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 25px;
+            }}
+            th {{
+                background-color: #f1f5f9;
+                color: #475569;
+                font-weight: 600;
+                text-align: left;
+                padding: 12px 10px;
+                border-bottom: 2px solid #cbd5e1;
+                font-size: 13px;
+            }}
+            .footer {{
+                text-align: center;
+                margin-top: 40px;
+                font-size: 12px;
+                color: #94a3b8;
+                border-top: 1px dashed #cbd5e1;
+                padding-top: 20px;
+            }}
+            .signature-area {{
+                margin-top: 30px;
+                display: flex;
+                justify-content: space-around;
+                font-size: 14px;
+            }}
+            .sig-line {{
+                border-top: 1px solid #94a3b8;
+                width: 200px;
+                text-align: center;
+                padding-top: 5px;
+                margin-top: 40px;
+                color: #64748b;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="cert-container">
+            <div class="header">
+                <h1>QualiHub</h1>
+                <p>Sistema Digital de Gestão e Certificação de Qualidade</p>
+                <p style="font-size: 11px; margin-top: 2px;">Laudo de Conformidade de Recebimento de Grãos</p>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>Fornecedor:</strong> {res['fornecedor']}<br>
+                    <strong>Tipo de Insumo:</strong> {res['insumo']}<br>
+                    <strong>Lote do Fornecedor:</strong> {res['lote']}
+                </div>
+                <div class="info-item">
+                    <strong>Nº Nota Fiscal:</strong> {res['nota_fiscal']}<br>
+                    <strong>Analista Responsável:</strong> {res['analista']}<br>
+                    <strong>Data/Hora de Emissão:</strong> {res['data_hora']}
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 30px;">
+                <span style="font-size: 12px; text-transform: uppercase; font-weight: 600; color: #64748b; display: block;">Resultado do Parecer Técnico</span>
+                <div class="status-badge">{res['status_final']}</div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Parâmetro</th>
+                        <th style="width: 20%; text-align: center;">Medição</th>
+                        <th style="width: 20%; text-align: center;">Status</th>
+                        <th style="width: 30%;">Especificação Reguladora</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {linhas_tabela}
+                </tbody>
+            </table>
+            
+            <div class="signature-area">
+                <div class="sig-line">
+                    Assinatura do Analista<br>
+                    <span style="font-size: 11px; font-style: italic;">{res['analista']}</span>
+                </div>
+                <div class="sig-line">
+                    Controle de Qualidade<br>
+                    <span style="font-size: 11px; font-style: italic;">QualiHub Automático</span>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>Este documento foi gerado eletronicamente e atesta a conformidade do insumo nas dependências de recepção industrial.</p>
+                <p>© {datetime.now().year} QualiHub Inc. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
+
 st.title("🧪 Análise de Recebimento de Insumos")
 st.markdown("Módulo laboratorial para controle físico-químico de grãos e derivados, com classificação automática de conformidade regulatória.")
 st.markdown("---")
@@ -159,7 +344,7 @@ else:
 
                 decisoes = [v[0] for v in status_params.values()]
                 if "Reprovado" in decisoes:
-                    status_final = "Reprovado"
+                    status_final = "Quarentena"
                 elif "Aprovado com Restrição" in decisoes:
                     status_final = "Aprovado com Restrição"
                 else:
@@ -175,6 +360,12 @@ else:
                         pureza, aflatoxina, capacidade_expansao, peso_hectolitrico, teor_cinzas, teor_ferro,
                         status_final, analista, data_hora_agora
                     ))
+                    
+                    # Atualiza o status do agendamento com base na análise de qualidade
+                    executar_dml(
+                        "UPDATE agendamentos SET Status = ? WHERE NotaFiscal = ?",
+                        (status_final, nota_fiscal)
+                    )
                     
                     st.session_state.ultima_analise = {
                         "analista": analista,
@@ -242,9 +433,9 @@ else:
         # Cálculo da decisão provisória baseada nos dados digitados na tela
         rt_decisoes = [v[0] for v in realtime_status.values()]
         if "Reprovado" in rt_decisoes:
-            rt_status_final = "Reprovado"
-            badge_color = "#dc3545"
-            badge_bg = "rgba(220, 53, 69, 0.15)"
+            rt_status_final = "Quarentena"
+            badge_color = "#e11d48"
+            badge_bg = "rgba(225, 29, 72, 0.15)"
         elif "Aprovado com Restrição" in rt_decisoes:
             rt_status_final = "Aprovado com Restrição"
             badge_color = "#ffc107"
@@ -377,8 +568,10 @@ else:
                 # Badge formatado da decisão
                 if res["status_final"] == "Aprovado":
                     st.success(f"**STATUS: APROVADO**")
-                elif res["status_final"] == "Aprovado com Restrição":
-                    st.warning(f"**STATUS: APROVADO COM RESTRIÇÃO**")
+                elif res["status_final"] in ["Aprovado com Restrição", "Aprovado com Desvio"]:
+                    st.warning(f"**STATUS: {res['status_final'].upper()}**")
+                elif res["status_final"] == "Quarentena":
+                    st.info(f"**STATUS: RETIDO EM QUARENTENA**")
                 else:
                     st.error(f"**STATUS: REPROVADO**")
                     
@@ -389,5 +582,17 @@ else:
             for param, (status_param, val_medido, desc) in res["detalhes"].items():
                 icon = "🟢" if status_param == "Aprovado" else ("🟡" if status_param == "Aprovado com Restrição" else "🔴")
                 st.write(f"{icon} **{param}**: {val_medido} — {status_param} ({desc})")
+                
+            st.divider()
+            
+            # Botão para baixar certificado em HTML
+            html_cert = gerar_html_certificado(res)
+            st.download_button(
+                label="📥 Baixar Certificado de Qualidade (HTML)",
+                data=html_cert,
+                file_name=f"certificado_qualidade_NF_{res['nota_fiscal']}.html",
+                mime="text/html",
+                help="Gera e baixa um certificado técnico de conformidade imprimível."
+            )
         else:
             st.info("Nenhuma análise cadastrada nesta sessão do navegador para visualização de detalhes.")

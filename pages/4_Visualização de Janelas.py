@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime, timedelta
 from utils.db import executar_query
-from utils.theme import aplicar_tema
+from utils.theme import aplicar_tema, obter_badge_status
 
 # Configuração de Página e Estilo
 aplicar_tema("Visualização de Janelas", "👁️")
@@ -35,7 +35,8 @@ try:
     # Filtro de visibilidade baseado no Perfil de Acesso (Fornecedor)
     perfil = st.session_state.get("role", "Administrador")
     if perfil == "Fornecedor":
-        agendamentos_df = agendamentos_df[agendamentos_df['NomeEmpresa'] == "Cerealista Amambai Ltda"]
+        fornecedor_nome = st.session_state.get("fornecedor_logado_nome")
+        agendamentos_df = agendamentos_df[agendamentos_df['NomeEmpresa'] == fornecedor_nome]
     
     if agendamentos_df.empty:
         st.warning("⚠️ Nenhum agendamento cadastrado no sistema. Vá para a página de agendamentos ou use o Seeder na Home para popular dados fictícios.")
@@ -85,7 +86,7 @@ try:
                 with col_d1:
                     st.metric("Cargas Programadas", f"{dia_total} caminhões")
                 with col_d2:
-                    st.metric("Volume Previsto", f"{dia_volume:,.0f} Kg")
+                    st.metric("Volume Previsto", f"{dia_volume:,.0f} Kg".replace(",", "."))
                 with col_d3:
                     st.metric("Aguardando Triagem", f"{dia_pendentes} cargas")
                 with col_d4:
@@ -102,12 +103,7 @@ try:
                     with col_card:
                         with st.container(border=True):
                             # Status Badge HTML
-                            if row['Status'] == "Pendente":
-                                badge_html = '<span style="background-color: rgba(245, 158, 11, 0.15); color: #D97706; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Pendente</span>'
-                            elif row['Status'] == "Aprovado":
-                                badge_html = '<span style="background-color: rgba(16, 185, 129, 0.15); color: #059669; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Aprovado</span>'
-                            else:
-                                badge_html = '<span style="background-color: rgba(239, 68, 68, 0.15); color: #DC2626; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;">Recusado</span>'
+                            badge_html = obter_badge_status(row['Status'])
                                 
                             header_html = f"""
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -127,7 +123,7 @@ try:
                             footer_html = f"""
                             <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700;">
                                 <span>Volume:</span>
-                                <span>{row['QuantidadeEsperada']:,} Kg</span>
+                                <span>{f"{row['QuantidadeEsperada']:,}".replace(",", ".")} Kg</span>
                             </div>
                             """
                             st.markdown(footer_html, unsafe_allow_html=True)
@@ -156,7 +152,7 @@ try:
                 # Se for hoje, adiciona uma tag
                 tag_hoje = " (HOJE)" if i == 0 else ""
                 
-                expander_label = f"📅 {dia_semana_str} ({data_formatada_br}){tag_hoje} — {total_cargas} carga(s) | Volume Total: {volume_total:,.0f} Kg"
+                expander_label = f"📅 {dia_semana_str} ({data_formatada_br}){tag_hoje} — {total_cargas} carga(s) | Volume Total: {f'{volume_total:,.0f}'.replace(',', '.')} Kg"
                 
                 with st.expander(expander_label, expanded=(i == 0)):
                     if cargas_do_dia.empty:

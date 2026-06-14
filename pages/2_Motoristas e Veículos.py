@@ -10,11 +10,21 @@ st.title("🚗 Controle de Motoristas e Veículos")
 st.markdown("Gerencie motoristas credenciados e frotas de transporte vinculadas aos seus fornecedores parceiros.")
 st.markdown("---")
 
+# Verifica perfil de acesso para restringir dados
+perfil_ativo = st.session_state.get("role", "Administrador")
+
 # Busca fornecedores disponíveis
-fornecedores_df = executar_query("SELECT ID, NomeEmpresa FROM fornecedores ORDER BY NomeEmpresa ASC")
+if perfil_ativo == "Fornecedor":
+    forn_cnpj = st.session_state.get("fornecedor_logado_cnpj")
+    fornecedores_df = executar_query("SELECT ID, NomeEmpresa FROM fornecedores WHERE CNPJ = ?", (forn_cnpj,))
+else:
+    fornecedores_df = executar_query("SELECT ID, NomeEmpresa FROM fornecedores ORDER BY NomeEmpresa ASC")
 
 if fornecedores_df.empty:
-    st.error("⚠️ Nenhum fornecedor cadastrado no sistema. Por favor, cadastre um fornecedor antes de gerenciar frotas.")
+    if perfil_ativo == "Fornecedor":
+        st.error("⚠️ Sua empresa não foi localizada no banco de dados. Por favor, realize o autocadastro primeiro.")
+    else:
+        st.error("⚠️ Nenhum fornecedor cadastrado no sistema. Por favor, cadastre um fornecedor antes de gerenciar frotas.")
 else:
     # Criação das 3 abas estruturadas
     tab_painel, tab_motorista, tab_veiculo = st.tabs([
@@ -27,13 +37,17 @@ else:
     with tab_painel:
         st.subheader("Visualização Hierárquica de Frotas")
         
-        fornecedor_selecionado = st.selectbox(
-            "Selecione o Fornecedor para Visualização",
-            options=fornecedores_df['NomeEmpresa'],
-            index=None,
-            placeholder="Escolha um fornecedor comercial...",
-            key="sb_painel_forn"
-        )
+        if perfil_ativo == "Fornecedor":
+            fornecedor_selecionado = st.session_state.get("fornecedor_logado_nome")
+            st.info(f"🏢 Empresa: **{fornecedor_selecionado}**")
+        else:
+            fornecedor_selecionado = st.selectbox(
+                "Selecione o Fornecedor para Visualização",
+                options=fornecedores_df['NomeEmpresa'],
+                index=None,
+                placeholder="Escolha um fornecedor comercial...",
+                key="sb_painel_forn"
+            )
         
         if fornecedor_selecionado:
             fornecedor_id = fornecedores_df[fornecedores_df['NomeEmpresa'] == fornecedor_selecionado]['ID'].iloc[0]
@@ -79,13 +93,17 @@ else:
     with tab_motorista:
         st.subheader("Cadastro de Novo Motorista")
         
-        fornecedor_mot = st.selectbox(
-            "Vincular ao Fornecedor",
-            options=fornecedores_df['NomeEmpresa'],
-            index=None,
-            placeholder="Escolha o fornecedor contratante...",
-            key="sb_mot_forn"
-        )
+        if perfil_ativo == "Fornecedor":
+            fornecedor_mot = st.session_state.get("fornecedor_logado_nome")
+            st.info(f"🏢 Vinculado à sua Empresa: **{fornecedor_mot}**")
+        else:
+            fornecedor_mot = st.selectbox(
+                "Vincular ao Fornecedor",
+                options=fornecedores_df['NomeEmpresa'],
+                index=None,
+                placeholder="Escolha o fornecedor contratante...",
+                key="sb_mot_forn"
+            )
         
         if fornecedor_mot:
             fornecedor_id_mot = fornecedores_df[fornecedores_df['NomeEmpresa'] == fornecedor_mot]['ID'].iloc[0]
@@ -117,13 +135,17 @@ else:
     with tab_veiculo:
         st.subheader("Cadastro de Veículo de Transporte")
         
-        fornecedor_vei = st.selectbox(
-            "Selecione o Fornecedor do Motorista",
-            options=fornecedores_df['NomeEmpresa'],
-            index=None,
-            placeholder="Escolha o fornecedor...",
-            key="sb_vei_forn"
-        )
+        if perfil_ativo == "Fornecedor":
+            fornecedor_vei = st.session_state.get("fornecedor_logado_nome")
+            st.info(f"🏢 Empresa: **{fornecedor_vei}**")
+        else:
+            fornecedor_vei = st.selectbox(
+                "Selecione o Fornecedor do Motorista",
+                options=fornecedores_df['NomeEmpresa'],
+                index=None,
+                placeholder="Escolha o fornecedor...",
+                key="sb_vei_forn"
+            )
         
         if fornecedor_vei:
             fornecedor_id_vei = fornecedores_df[fornecedores_df['NomeEmpresa'] == fornecedor_vei]['ID'].iloc[0]

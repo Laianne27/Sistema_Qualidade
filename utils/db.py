@@ -93,6 +93,22 @@ def inicializar_banco():
         );
         """)
 
+        # 6. Tabela de Pesagens
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pesagens (
+            ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            AgendamentoID INTEGER UNIQUE NOT NULL,
+            PesoBruto REAL NOT NULL,
+            PesoTara REAL,
+            PesoLiquido REAL,
+            PesoNotaFiscal REAL NOT NULL,
+            DiferencaPercentual REAL,
+            DataHoraEntrada TEXT NOT NULL,
+            DataHoraSaida TEXT,
+            FOREIGN KEY (AgendamentoID) REFERENCES agendamentos (ID)
+        );
+        """)
+
         # Código de migração de banco para compatibilidade se o banco já existir
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='analises';")
         if cursor.fetchone():
@@ -110,6 +126,20 @@ def inicializar_banco():
                 cursor.execute("ALTER TABLE analises ADD COLUMN TeorCinzas REAL;")
             if "TeorFerro" not in columns:
                 cursor.execute("ALTER TABLE analises ADD COLUMN TeorFerro REAL;")
+            if "DesvioLiberado" not in columns:
+                cursor.execute("ALTER TABLE analises ADD COLUMN DesvioLiberado INTEGER DEFAULT 0;")
+            if "DesvioAutorizador" not in columns:
+                cursor.execute("ALTER TABLE analises ADD COLUMN DesvioAutorizador TEXT;")
+            if "DesvioJustificativa" not in columns:
+                cursor.execute("ALTER TABLE analises ADD COLUMN DesvioJustificativa TEXT;")
+            if "DesvioDataHora" not in columns:
+                cursor.execute("ALTER TABLE analises ADD COLUMN DesvioDataHora TEXT;")
+        
+        # 7. Índices de Otimização de Performance
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_agendamentos_data ON agendamentos (DataAgendada);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_analises_datahora ON analises (DataHora);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_agendamentos_cnpj ON agendamentos (FornecedorCNPJ);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_analises_fornecedor ON analises (FornecedorID);")
         
         conn.commit()
 

@@ -16,17 +16,28 @@ def buscar_fornecedores_para_dropdown():
         df['display'] = df['NomeEmpresa'] + ' (' + df['CNPJ'] + ')'
     return df
 
-def buscar_agendamentos_da_data(data_busca):
+def buscar_agendamentos_da_data(data_busca, fornecedor_cnpj=None):
     """Busca agendamentos existentes para uma data específica para monitoramento de slots."""
-    query = """
-        SELECT f.NomeEmpresa as Fornecedor, a.TipoInsumo as Insumo, 
-               a.QuantidadeEsperada as 'Volume (Kg)', a.PlacaCaminhao as Placa, a.Status
-        FROM agendamentos a
-        JOIN fornecedores f ON a.FornecedorCNPJ = f.CNPJ
-        WHERE a.DataAgendada = ?
-        ORDER BY a.DataCadastro ASC
-    """
-    return executar_query(query, (data_busca,))
+    if fornecedor_cnpj:
+        query = """
+            SELECT f.NomeEmpresa as Fornecedor, a.TipoInsumo as Insumo, 
+                   a.QuantidadeEsperada as 'Volume (Kg)', a.PlacaCaminhao as Placa, a.Status
+            FROM agendamentos a
+            JOIN fornecedores f ON a.FornecedorCNPJ = f.CNPJ
+            WHERE a.DataAgendada = ? AND a.FornecedorCNPJ = ?
+            ORDER BY a.DataCadastro ASC
+        """
+        return executar_query(query, (data_busca, fornecedor_cnpj))
+    else:
+        query = """
+            SELECT f.NomeEmpresa as Fornecedor, a.TipoInsumo as Insumo, 
+                   a.QuantidadeEsperada as 'Volume (Kg)', a.PlacaCaminhao as Placa, a.Status
+            FROM agendamentos a
+            JOIN fornecedores f ON a.FornecedorCNPJ = f.CNPJ
+            WHERE a.DataAgendada = ?
+            ORDER BY a.DataCadastro ASC
+        """
+        return executar_query(query, (data_busca,))
 
 # --- INTERFACE DA PÁGINA ---
 st.title("📅 Agendamento de Entregas")
@@ -49,8 +60,10 @@ else:
         perfil = st.session_state.get("role", "Administrador")
         
         if perfil == "Fornecedor":
-            fornecedor_display = "Cerealista Amambai Ltda (12.345.678/0001-90)"
-            st.info("🏢 Empresa Vinculada: **Cerealista Amambai Ltda (12.345.678/0001-90)**")
+            forn_nome = st.session_state.get("fornecedor_logado_nome")
+            forn_cnpj = st.session_state.get("fornecedor_logado_cnpj")
+            fornecedor_display = f"{forn_nome} ({forn_cnpj})"
+            st.info(f"🏢 Empresa Vinculada: **{fornecedor_display}**")
         else:
             fornecedor_display = st.selectbox(
                 "Selecione o Fornecedor *",
@@ -85,8 +98,11 @@ else:
             if not all([fornecedor_display, tipo_insumo, quantidade_esperada > 0, placa_caminhao, nota_fiscal, data_agendada]):
                 st.warning("⚠️ Preencha todos os campos obrigatórios (Quantidade deve ser > 0 e a Data deve ser selecionada).")
             else:
-                # Recupera o CNPJ do fornecedor selecionado
-                cnpj_selecionado = fornecedores.loc[fornecedores['display'] == fornecedor_display, 'CNPJ'].iloc[0]
+                if perfil == "Fornecedor":
+                    cnpj_selecionado = st.session_state.get("fornecedor_logado_cnpj")
+                else:
+                    # Recupera o CNPJ do fornecedor selecionado
+                    cnpj_selecionado = fornecedores.loc[fornecedores['display'] == fornecedor_display, 'CNPJ'].iloc[0]
                 placa_formatada = placa_caminhao.strip().upper()
                 data_formatada = data_agendada.strftime('%Y-%m-%d')
 
@@ -119,7 +135,7 @@ else:
         # Formata dados do ticket em tempo real
         forn_nome = fornecedor_display.split(" (")[0] if fornecedor_display else "---"
         insumo_preview = tipo_insumo if tipo_insumo else "---"
-        volume_preview = f"{quantidade_esperada:,.0f} Kg" if quantidade_esperada > 0 else "0 Kg"
+        volume_preview = f"{quantidade_esperada:,.0f} Kg".replace(",", ".") if quantidade_esperada > 0 else "0 Kg"
         placa_preview = placa_caminhao.upper() if placa_caminhao else "---"
         motorista_preview = nome_motorista if nome_motorista else "---"
         nf_preview = nota_fiscal if nota_fiscal else "---"
@@ -161,12 +177,40 @@ else:
         
         if data_agendada:
             data_busca = data_agendada.strftime('%Y-%m-%d')
-            agendamentos_dia = buscar_agendamentos_da_data(data_busca)
+            forn_cnpj_filtro = st.session_state.get("fornecedor_logado_cnpj") if perfil == "Fornecedor" else None
+            
+            # Contagem de ocupação global para vagas da doca (confidencial)
+            query_cap = executar_query("SELECT COUNT(*) as total FROM agendamentos WHERE DataAgendada = ?", (data_busca,))
+            total_global = int(query_cap['total'].iloc[0]) if not query_cap.empty else 0
+            
+            CAPACIDADE_MAXIMA = 5
+            percent_ocupado = min(100, int((total_global / CAPACIDADE_MAXIMA) * 100))
+            
+            st.write(f"**Capacidade Operacional:** {total_global} / {CAPACIDADE_MAXIMA} vagas preenchidas")
+            if total_global >= CAPACIDADE_MAXIMA:
+                st.error("🚨 DOCA ESGOTADA! Evite agendar novos recebimentos para esta data.")
+            elif total_global >= 4:
+                st.warning("⚠️ Ocupação Crítica. Restam poucas vagas.")
+            else:
+                st.success("🟢 Doca Disponível. Boa quantidade de vagas livres.")
+                
+            st.progress(percent_ocupado / 100.0)
+            
+            # Detalhes das cargas da própria empresa (filtrado por CNPJ) ou geral
+            agendamentos_dia = buscar_agendamentos_da_data(data_busca, forn_cnpj_filtro)
             
             if agendamentos_dia.empty:
-                st.success(f"✅ Doca livre! Nenhuma entrega agendada para {data_agendada.strftime('%d/%m/%Y')}.")
+                if perfil == "Fornecedor":
+                    st.info("Nenhuma carga agendada por sua empresa para este dia.")
+                else:
+                    st.info("Nenhuma carga agendada para este dia.")
             else:
-                st.warning(f"⚠️ Atenção: Já existem **{len(agendamentos_dia)}** carga(s) agendada(s) para {data_agendada.strftime('%d/%m/%Y')}:")
-                st.dataframe(agendamentos_dia, use_container_width=True, hide_index=True)
+                if perfil == "Fornecedor":
+                    st.info("📌 Suas cargas agendadas para este dia:")
+                    df_forn_show = agendamentos_dia[['Insumo', 'Volume (Kg)', 'Placa', 'Status']]
+                    st.dataframe(df_forn_show, use_container_width=True, hide_index=True)
+                else:
+                    st.info(f"📌 Detalhes das **{len(agendamentos_dia)}** carga(s) agendada(s):")
+                    st.dataframe(agendamentos_dia, use_container_width=True, hide_index=True)
         else:
             st.caption("Selecione uma data no formulário para visualizar a ocupação da doca.")

@@ -112,3 +112,65 @@ def aplicar_tema(titulo_pagina, icone_pagina):
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
+
+def obter_badge_status(status):
+    """
+    Retorna o código HTML formatado com classes CSS premium para badges de status.
+    Melhora o padrão DRY (Don't Repeat Yourself) em toda a aplicação.
+    """
+    mapa_status = {
+        "Pendente": {
+            "bg": "rgba(245, 158, 11, 0.15)",
+            "cor": "#D97706",
+            "texto": "Pendente"
+        },
+        "Em Pesagem": {
+            "bg": "rgba(6, 182, 212, 0.15)",
+            "cor": "#0891b2",
+            "texto": "Em Pesagem"
+        },
+        "Quarentena": {
+            "bg": "rgba(244, 63, 94, 0.15)",
+            "cor": "#e11d48",
+            "texto": "Quarentena"
+        },
+        "Concluído": {
+            "bg": "rgba(16, 185, 129, 0.15)",
+            "cor": "#059669",
+            "texto": "Concluído"
+        },
+        "Aprovado": {
+            "bg": "rgba(16, 185, 129, 0.15)",
+            "cor": "#059669",
+            "texto": "Concluído"
+        },
+        "Aprovado com Restrição": {
+            "bg": "rgba(245, 158, 11, 0.15)",
+            "cor": "#D97706",
+            "texto": "Aprovado com Restrição"
+        },
+        "Aprovado com Desvio": {
+            "bg": "rgba(59, 130, 246, 0.15)",
+            "cor": "#2563eb",
+            "texto": "Desvio Liberado"
+        },
+        "Recusado": {
+            "bg": "rgba(239, 68, 68, 0.15)",
+            "cor": "#DC2626",
+            "texto": "Recusado"
+        },
+        "Reprovado": {
+            "bg": "rgba(239, 68, 68, 0.15)",
+            "cor": "#DC2626",
+            "texto": "Recusado"
+        }
+    }
+    
+    cfg = mapa_status.get(status, {
+        "bg": "rgba(128, 128, 128, 0.15)",
+        "cor": "#4b5563",
+        "texto": status
+    })
+    
+    return f'<span style="background-color: {cfg["bg"]}; color: {cfg["cor"]}; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-transform: uppercase;">{cfg["texto"]}</span>'
+
